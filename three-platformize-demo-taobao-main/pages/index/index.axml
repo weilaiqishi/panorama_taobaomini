@@ -1,0 +1,3 @@
+<view class="page">
+  <canvas class="canvas" id="gl" type="webgl" disable-scroll onReady="onCanvasReady" onTouchStart="onTX" onTouchMove="onTX" onTouchEnd="onTX"></canvas>
+</view>

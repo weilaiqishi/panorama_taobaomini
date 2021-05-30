@@ -1,0 +1,10 @@
+{
+  "enableDistFileMinify": false,
+  "enableDataPreload": true,
+  "enableLegacyRemoteDebug": false,
+  "ignoreHttpDomainCheck": true,
+  "ignoreWebViewDomainCheck": true,
+  "enableBackgroundBuild": false,
+  "disableRemoteDebugSourcePanel": false,
+  "enableCloudBuild": false
+}

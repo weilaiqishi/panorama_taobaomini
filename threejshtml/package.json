@@ -1,0 +1,16 @@
+{
+  "name": "threejshtml",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "installesbuild": "node node_modules/esbuild/install.js",
+    "build": "esbuild ./src/index.js --bundle --outfile=out.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "esbuild": "^0.12.5",
+    "three": "^0.129.0"
+  }
+}
