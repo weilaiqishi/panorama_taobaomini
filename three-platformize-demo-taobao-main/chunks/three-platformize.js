@@ -3,7 +3,6 @@
  * Copyright 2010-2021 Three.js Authors
  * SPDX-License-Identifier: MIT
  */
-let $URL = undefined;
 let $atob = undefined;
 let $Blob = undefined;
 let $window = undefined;
@@ -30,8 +29,6 @@ class Platform {
     $OffscreenCanvas = globals.OffscreenCanvas;
     $HTMLCanvasElement = globals.HTMLCanvasElement;
     $createImageBitmap = globals.createImageBitmap;
-
-    $URL = $window.URL;
     $DOMParser = $window.DOMParser;
     $TextDecoder = $window.TextDecoder;
 
@@ -41,8 +38,6 @@ class Platform {
   dispose() {
     this.platform && this.platform.dispose();
     this.platform = null;
-
-    $URL = null;
     $Blob = null;
     $atob = null;
     $window = null;
@@ -206,8 +201,6 @@ const WrapAroundEnding = 2402;
 const NormalAnimationBlendMode = 2500;
 const AdditiveAnimationBlendMode = 2501;
 const TrianglesDrawMode = 0;
-const TriangleStripDrawMode = 1;
-const TriangleFanDrawMode = 2;
 const LinearEncoding = 3000;
 const sRGBEncoding = 3001;
 const GammaEncoding = 3007;
@@ -26187,250 +26180,6 @@ Bone.prototype = Object.assign( Object.create( Object3D.prototype ), {
 
 } );
 
-const _offsetMatrix = /*@__PURE__*/ new Matrix4();
-const _identityMatrix = /*@__PURE__*/ new Matrix4();
-
-class Skeleton {
-
-	constructor( bones = [], boneInverses = [] ) {
-
-		this.uuid = MathUtils.generateUUID();
-
-		this.bones = bones.slice( 0 );
-		this.boneInverses = boneInverses;
-		this.boneMatrices = null;
-
-		this.boneTexture = null;
-		this.boneTextureSize = 0;
-
-		this.frame = - 1;
-
-		this.init();
-
-	}
-
-	init() {
-
-		const bones = this.bones;
-		const boneInverses = this.boneInverses;
-
-		this.boneMatrices = new Float32Array( bones.length * 16 );
-
-		// calculate inverse bone matrices if necessary
-
-		if ( boneInverses.length === 0 ) {
-
-			this.calculateInverses();
-
-		} else {
-
-			// handle special case
-
-			if ( bones.length !== boneInverses.length ) {
-
-				console.warn( 'THREE.Skeleton: Number of inverse bone matrices does not match amount of bones.' );
-
-				this.boneInverses = [];
-
-				for ( let i = 0, il = this.bones.length; i < il; i ++ ) {
-
-					this.boneInverses.push( new Matrix4() );
-
-				}
-
-			}
-
-		}
-
-	}
-
-	calculateInverses() {
-
-		this.boneInverses.length = 0;
-
-		for ( let i = 0, il = this.bones.length; i < il; i ++ ) {
-
-			const inverse = new Matrix4();
-
-			if ( this.bones[ i ] ) {
-
-				inverse.copy( this.bones[ i ].matrixWorld ).invert();
-
-			}
-
-			this.boneInverses.push( inverse );
-
-		}
-
-	}
-
-	pose() {
-
-		// recover the bind-time world matrices
-
-		for ( let i = 0, il = this.bones.length; i < il; i ++ ) {
-
-			const bone = this.bones[ i ];
-
-			if ( bone ) {
-
-				bone.matrixWorld.copy( this.boneInverses[ i ] ).invert();
-
-			}
-
-		}
-
-		// compute the local matrices, positions, rotations and scales
-
-		for ( let i = 0, il = this.bones.length; i < il; i ++ ) {
-
-			const bone = this.bones[ i ];
-
-			if ( bone ) {
-
-				if ( bone.parent && bone.parent.isBone ) {
-
-					bone.matrix.copy( bone.parent.matrixWorld ).invert();
-					bone.matrix.multiply( bone.matrixWorld );
-
-				} else {
-
-					bone.matrix.copy( bone.matrixWorld );
-
-				}
-
-				bone.matrix.decompose( bone.position, bone.quaternion, bone.scale );
-
-			}
-
-		}
-
-	}
-
-	update() {
-
-		const bones = this.bones;
-		const boneInverses = this.boneInverses;
-		const boneMatrices = this.boneMatrices;
-		const boneTexture = this.boneTexture;
-
-		// flatten bone matrices to array
-
-		for ( let i = 0, il = bones.length; i < il; i ++ ) {
-
-			// compute the offset between the current and the original transform
-
-			const matrix = bones[ i ] ? bones[ i ].matrixWorld : _identityMatrix;
-
-			_offsetMatrix.multiplyMatrices( matrix, boneInverses[ i ] );
-			_offsetMatrix.toArray( boneMatrices, i * 16 );
-
-		}
-
-		if ( boneTexture !== null ) {
-
-			boneTexture.needsUpdate = true;
-
-		}
-
-	}
-
-	clone() {
-
-		return new Skeleton( this.bones, this.boneInverses );
-
-	}
-
-	getBoneByName( name ) {
-
-		for ( let i = 0, il = this.bones.length; i < il; i ++ ) {
-
-			const bone = this.bones[ i ];
-
-			if ( bone.name === name ) {
-
-				return bone;
-
-			}
-
-		}
-
-		return undefined;
-
-	}
-
-	dispose( ) {
-
-		if ( this.boneTexture !== null ) {
-
-			this.boneTexture.dispose();
-
-			this.boneTexture = null;
-
-		}
-
-	}
-
-	fromJSON( json, bones ) {
-
-		this.uuid = json.uuid;
-
-		for ( let i = 0, l = json.bones.length; i < l; i ++ ) {
-
-			const uuid = json.bones[ i ];
-			let bone = bones[ uuid ];
-
-			if ( bone === undefined ) {
-
-				console.warn( 'THREE.Skeleton: No bone found with UUID:', uuid );
-				bone = new Bone();
-
-			}
-
-			this.bones.push( bone );
-			this.boneInverses.push( new Matrix4().fromArray( json.boneInverses[ i ] ) );
-
-		}
-
-		this.init();
-
-		return this;
-
-	}
-
-	toJSON() {
-
-		const data = {
-			metadata: {
-				version: 4.5,
-				type: 'Skeleton',
-				generator: 'Skeleton.toJSON'
-			},
-			bones: [],
-			boneInverses: []
-		};
-
-		data.uuid = this.uuid;
-
-		const bones = this.bones;
-		const boneInverses = this.boneInverses;
-
-		for ( let i = 0, l = bones.length; i < l; i ++ ) {
-
-			const bone = bones[ i ];
-			data.bones.push( bone.uuid );
-
-			const boneInverse = boneInverses[ i ];
-			data.boneInverses.push( boneInverse.toArray() );
-
-		}
-
-		return data;
-
-	}
-
-}
-
 const _instanceLocalMatrix = new Matrix4();
 const _instanceWorldMatrix = new Matrix4();
 
@@ -41512,4 +41261,4 @@ if ( typeof $window !== 'undefined' ) {
 
 }
 
-export { $Blob as $, AnimationClip as A, BufferAttribute as B, Color as C, DoubleSide as D, MeshPhysicalMaterial as E, FileLoader as F, Group as G, Interpolant as H, InterleavedBuffer as I, NearestMipmapNearestFilter as J, LinearMipmapNearestFilter as K, Loader as L, MeshBasicMaterial as M, NearestFilter as N, OrthographicCamera as O, PointsMaterial as P, NearestMipmapLinearFilter as Q, RGBFormat as R, SkinnedMesh as S, TangentSpaceNormalMap as T, ClampToEdgeWrapping as U, Vector2 as V, MirroredRepeatWrapping as W, InterpolateDiscrete as X, FrontSide as Y, $createImageBitmap as Z, ImageBitmapLoader as _, LoaderUtils as a, InterleavedBufferAttribute as a0, $URL as a1, CanvasTexture as a2, TriangleFanDrawMode as a3, TriangleStripDrawMode as a4, VectorKeyframeTrack as a5, QuaternionKeyframeTrack as a6, NumberKeyframeTrack as a7, Box3 as a8, Vector3 as a9, Sphere as aa, $document as ab, MOUSE as ac, TOUCH as ad, Quaternion as ae, Spherical as af, $window as ag, EventDispatcher as ah, Scene as ai, AnimationMixer as aj, SphereGeometry as ak, PLATFORM as al, WebGL1Renderer as am, Clock as an, MeshStandardMaterial as b, TextureLoader as c, LinearFilter as d, LinearMipmapLinearFilter as e, RepeatWrapping as f, Material as g, LineBasicMaterial as h, PropertyBinding as i, BufferGeometry as j, Mesh as k, LineSegments as l, Line as m, LineLoop as n, Points as o, PerspectiveCamera as p, MathUtils as q, InterpolateLinear as r, sRGBEncoding as s, Bone as t, Object3D as u, Matrix4 as v, Skeleton as w, SpotLight as x, PointLight as y, DirectionalLight as z };
+export { $document as $, Clock as C, DoubleSide as D, EventDispatcher as E, MOUSE as M, PLATFORM as P, Quaternion as Q, Raycaster as R, Spherical as S, TOUCH as T, Vector3 as V, WebGL1Renderer as W, Vector2 as a, $window as b, Scene as c, SphereGeometry as d, SpriteMaterial as e, MeshBasicMaterial as f, Mesh as g, Sprite as h, PerspectiveCamera as i, TextureLoader as j, sRGBEncoding as s };

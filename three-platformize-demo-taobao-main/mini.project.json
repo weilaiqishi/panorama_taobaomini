@@ -1,13 +1,16 @@
 {
-  "enableParallelLoader": true,
-  "enableEnhancedBuild": true,
-  "enableNodeModuleBabelTransform": true,
-  "node_modules_es6_whitelist": [
-    "three-platformize",
-    "three-platformize-demo",
-    "three-sprite-player"
-  ],
-  "component2": false,
-  "enableAppxNg": false,
-  "enableHMR": false
+    "enableParallelLoader": true,
+    "enableEnhancedBuild": true,
+    "enableNodeModuleBabelTransform": true,
+    "node_modules_es6_whitelist": [
+        "three-platformize",
+        "three-platformize-demo",
+        "three-sprite-player"
+    ],
+    "component2": false,
+    "enableAppxNg": false,
+    "enableHMR": false,
+    "exclude": [
+        "server/**"
+    ]
 }

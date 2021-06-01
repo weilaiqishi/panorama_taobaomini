@@ -6,6 +6,8 @@
   "dependencies": {
     "@rollup/plugin-node-resolve": "^11.1.0",
     "@rollup/plugin-sucrase": "^3.1.0",
+    "@tbmp/mp-cloud-sdk": "^1.4.2",
+    "async-validator": "^3.5.2",
     "rollup": "^2.36.2",
     "rollup-plugin-terser": "^7.0.2",
     "three-platformize": "^1.0.10",
