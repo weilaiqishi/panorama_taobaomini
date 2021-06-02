@@ -13,8 +13,7 @@ const utils = require('../../utils/utils')
 
 // @ts-ignore
 Page({
-  data: {
-  },
+  data: {},
   onCanvasReady() {
     // @ts-ignore
     Promise.all([
@@ -55,11 +54,11 @@ Page({
       this.deps = { canvas, renderer, camera, scene, clock, textureLoader, eventBus, dpr }; // gltfLoader, ,
 
       // scene.position.z = -3;
-      renderer.outputEncoding = THREE.sRGBEncoding;
+      // renderer.outputEncoding = THREE.sRGBEncoding;
       renderer.setPixelRatio(tbFont.isDev() ? 1 : dpr);
       renderer.setSize(canW, canH);
 
-      // scene.background = new Color(0xffffff);
+      // scene.background = new THREE.Color(0x000000);
       // const geo = new PlaneBufferGeometry()
       // const mat = new MeshBasicMaterial({ color: 0x123456 })
       // scene.add(new Mesh(geo, mat))
@@ -78,19 +77,11 @@ Page({
     }
   },
   async loadContent() {
-    try {
-      my.showLoading()
-      const demo = new (PanoramaLoader)(this.deps) as Demo;
-      await demo.init();
+    const demo = new (PanoramaLoader)(this.deps) as Demo;
+    await demo.init();
 
-      (this.currDemo as Demo)?.dispose()
-      this.currDemo = demo;
-    } catch (error) {
-      // @ts-ignore
-      my.alert({ content: error + ':' + JSON.stringify(error) })
-    } finally {
-      my.hideLoading()
-    }
+    (this.currDemo as Demo)?.dispose()
+    this.currDemo = demo;
   },
   // ide中webgl点击事件没反应
   onTX(e) {

@@ -24045,7 +24045,7 @@
       scene2.add(mesh2);
       return mesh2;
     }
-    const mesh = addImg("https://qhyxpicoss.kujiale.com/r/2019/07/01/L3D137S8ENDIADDWAYUI5L7GLUF3P3WS888_3000x4000.jpg?x-oss-process=image/resize,m_fill,w_1600,h_920/format,webp", scene, 1);
+    const mesh = addImg("https://isv.alibabausercontent.com/00000000/imgextra/i3/3981030266/O1CN0154rnpS1Dps2LsPLyM_!!3981030266-0-isvtu-00000000.jpg", scene, 1);
     scene.add(mesh);
     addAxisHelper({ scene });
     const rendererRender = createRendererRender({ renderer, scene, camera });

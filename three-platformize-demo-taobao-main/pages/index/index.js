@@ -1,4 +1,4 @@
-import { $ as $document, V as Vector3, M as MOUSE, T as TOUCH, Q as Quaternion, S as Spherical, a as Vector2, b as $window, E as EventDispatcher, s as sRGBEncoding, c as Scene, d as SphereGeometry, e as SpriteMaterial, f as MeshBasicMaterial, D as DoubleSide, g as Mesh, R as Raycaster, h as Sprite, P as PLATFORM, W as WebGL1Renderer, i as PerspectiveCamera, C as Clock, j as TextureLoader } from '../../chunks/three-platformize.js';
+import { $ as $document, V as Vector3, M as MOUSE, T as TOUCH, Q as Quaternion, S as Spherical, a as Vector2, b as $window, E as EventDispatcher, s as sRGBEncoding, c as Scene, d as SpriteMaterial, e as MeshBasicMaterial, D as DoubleSide, f as SphereGeometry, g as Mesh, R as Raycaster, L as LinearFilter, h as Sprite, P as PLATFORM, W as WebGL1Renderer, i as PerspectiveCamera, C as Clock, j as TextureLoader } from '../../chunks/three-platformize.js';
 
 class Blob {
   constructor(parts, options) {
@@ -2246,34 +2246,43 @@ class Demo {
 
 function _optionalChain$1(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }
 const utils = require('../../utils/utils');
+const [requestAnimationFrame, cancelAnimationFrame] = utils.makeAnimationFrame();
 
-class PanoramaLoader extends Demo {constructor(...args) { super(...args); PanoramaLoader.prototype.__init.call(this);PanoramaLoader.prototype.__init2.call(this);PanoramaLoader.prototype.__init3.call(this);PanoramaLoader.prototype.__init4.call(this);PanoramaLoader.prototype.__init5.call(this); }
+class PanoramaLoader extends Demo {constructor(...args) { super(...args); PanoramaLoader.prototype.__init.call(this);PanoramaLoader.prototype.__init2.call(this);PanoramaLoader.prototype.__init3.call(this);PanoramaLoader.prototype.__init4.call(this);PanoramaLoader.prototype.__init5.call(this);PanoramaLoader.prototype.__init6.call(this);PanoramaLoader.prototype.__init7.call(this);PanoramaLoader.prototype.__init8.call(this);PanoramaLoader.prototype.__init9.call(this); }
   
   
   
-  
+  __init() {this.canClick = true;}
 
+  __init2() {this.current = 0;}
   
   
-  __init() {this.guideposts = [];}
-  __init2() {this.time = 0;}
+  __init3() {this.guideposts = [];}
+  __init4() {this.time = 0;}
 
-  __init3() {this.panoramas = ['https://topfullstackkimeng.oss-cn-hangzhou.aliyuncs.com/night1.jpg', 'https://isv.alibabausercontent.com/00000000/imgextra/i3/3981030266/O1CN0154rnpS1Dps2LsPLyM_!!3981030266-0-isvtu-00000000.jpg'];}
-  __init4() {this.guidepostsOption = [
+  __init5() {this.panoramasCount = 0;}
+  __init6() {this.panoramas = ['https://topfullstackkimeng.oss-cn-hangzhou.aliyuncs.com/night1.jpg', 'https://isv.alibabausercontent.com/00000000/imgextra/i3/3981030266/O1CN0154rnpS1Dps2LsPLyM_!!3981030266-0-isvtu-00000000.jpg'];}
+  __init7() {this.panoramasTexture = [];}
+  __init8() {this.guidepostsOption = [
     [
       {
         x: 4340 / 7680 * 100,
         y: 2170 / 3840 * 100,
         next: 1
       },
+    ],
+    [
+      {
+        x: 4340 / 7680 * 100,
+        y: 2170 / 3840 * 100,
+        next: 0
+      },
     ]
   ];}
   async init() {
-    // 场景
-    this.scene = new Scene();
-    this.add(this.scene);
-
-    this.geometry = new SphereGeometry(50, 256, 256);
+    // 主场景
+    this.mainScene = new Scene();
+    this.add(this.mainScene);
 
     // 全景调整摄像机放球体中心
     this.deps.camera.position.set(-0.1, 0, 0);
@@ -2286,54 +2295,116 @@ class PanoramaLoader extends Demo {constructor(...args) { super(...args); Panora
     this.guidepostsMap = this.deps.textureLoader.load('https://isv.alibabausercontent.com/00000000/imgextra/i2/3981030266/O1CN01aXsnkp1Dps2HJfGil_!!3981030266-2-isvtu-00000000.png');
     this.guidepostsMaterial = new SpriteMaterial({
       map: this.guidepostsMap,
-      color: 0xffffff,
-      fog: true,
+      fog: true
     });
+
+    // 加载texture
+    await this.loadTexture();
 
     // 进入场景
-    this.changePanoramas(0);
-    setTimeout(() => {
-      this.changePanoramas(1);
-    }, 5000);
+    this.changePanoramas(0, 'first');
+    // setTimeout(() => {
+    //   this.changePanoramas(1, 'test')
+    // }, 10000);
   }
 
-  changePanoramas(index) {
-    const textureLoader = this.deps.textureLoader;
-    // 释放旧全景
-    this.disposeMesh();
+  loadTexture() {
+    return new Promise((resolve) => {
+      const length = this.panoramas.length;
+      const textureLoader = this.deps.textureLoader;
+      this.panoramasTexture = this.panoramas.map(src => {
+        const texture = textureLoader.load(src, () => {
+          this.panoramasCount++;
+          console.log('load ', this.panoramasCount);
+          this.deps.eventBus.emit('loadImg', this.panoramasCount);
+          if (this.panoramasCount === length) {
+            resolve(true);
+            this.deps.eventBus.emit('loadImged');
+          }
+        });
+        this.transformTexture(texture);
+        return texture
+      });
+    })
+  }
+
+  changePanoramas(index, from = 'none') {
+    console.log('changePanoramas ', index, from);
+    this.deps.textureLoader;
+    this.current = index;
+
+    // 释放旧路标
     this.disposeGuidepost();
 
-    // 画球
     this.time++;
-    const texture = textureLoader.load(this.panoramas[index]);
-    // 内纹理是镜像 需要再镜像还原
-    texture.center = new Vector2(0.5, 0.5);
-    texture.rotation = Math.PI;
-    texture.flipY = false;
-    this.material = new MeshBasicMaterial({ map: texture });
-    // 渲染球体的双面
-    this.material.side = DoubleSide;
-    this.mesh = new Mesh(this.geometry, this.material);
-    this.scene.add(this.mesh);
 
-    // 画地标
-    this.guidepostsOption[index] && this.guidepostsOption[index].forEach(({ x, y }) => {
-      this.addGuidepost(y, x, 50);
-    });
-    
-    this.update();
+    // 画球
+    if (from === 'first') {
+      const texture1 = this.panoramasTexture[index];
+      const texture2 = this.panoramasTexture[index];
+      const material1 = new MeshBasicMaterial({ map: texture1, transparent: false, fog: false });
+      const material2 = new MeshBasicMaterial({ map: texture2, transparent: true, opacity: 0, fog: false });
+      // 渲染球体的双面
+      material1.side = DoubleSide;
+      material2.side = DoubleSide;
+
+      // 首次准备球体
+      // 两个球过渡用
+      const geometry = new SphereGeometry(50, 256, 256);
+      this.mesh1 = new Mesh(geometry, material1);
+      this.mesh2 = new Mesh(geometry, material2);
+
+      this.mainScene.add(this.mesh1);
+      this.mainScene.add(this.mesh2);
+
+      // 画地标
+      this.guidepostsOption[index] && this.guidepostsOption[index].forEach(({ x, y }) => {
+        this.addGuidepost(y, x, 50);
+      });
+    } else {
+      this.mesh1.material.map = this.panoramasTexture[index];
+      this.mesh1.material.map.needsUpdate = true;
+      let time = 0;
+      const change = () => {
+        time++;
+        if (time <= 60) {
+          if (time % 3 === 0) {
+            this.mesh1.material.setValues({ opacity: time / 60, transparent: true });
+            this.mesh2.material.setValues({ opacity: 1 - time / 60, transparent: true });
+
+            if (time === 60) {
+              this.mesh2.material.map = this.panoramasTexture[index];
+              this.mesh1.material.setValues({ transparent: false, opacity: 1 });
+              this.mesh2.material.setValues({ transparent: true, opacity: 0 });
+
+              // 画地标
+              this.guidepostsOption[index] && this.guidepostsOption[index].forEach(({ x, y }) => {
+                this.addGuidepost(y, x, 50);
+              });
+            }
+            this.mesh1.material.needsUpdate = true;
+            this.mesh2.material.needsUpdate = true;
+          }
+
+          requestAnimationFrame(change);
+        }
+      };
+      change();
+    }
   }
 
-  __init5() {this.handleClick = utils.debounce(
+  __init9() {this.handleClick = utils.debounce(
     (() => {
       const mouse = new Vector2();
       const raycaster = new Raycaster();
-      new Spherical();
+      // const spherical = new THREE.Spherical()
 
       return function (e) {
+        if (!this.canClick) { return }
+        if (!this.guideposts.length) { return }
         const { canvas, camera, dpr } = this.deps;
-        const { mesh } = this;
-        if (!mesh) { return }
+        this.canClick = false;
+
         const innerWidth = canvas.width;
         const innerHeight = canvas.height;
         const clientX = e.changedTouches[0].x * dpr;
@@ -2357,33 +2428,42 @@ class PanoramaLoader extends Demo {constructor(...args) { super(...args); Panora
               break
             }
           }
-          this.changePanoramas(this.guideposts[index].next);
+          this.changePanoramas(this.guidepostsOption[this.current][index].next, 'click');
+
+          // 射线和球体求交，选中一系列直线
+          // const intersects = raycaster.intersectObjects([mesh])
+          // if (intersects.length > 0) {
+          //   //取点击到的最近的那个物体的交点
+          //   const pointClicked = intersects[0].point
+          //   console.log(pointClicked)
+          //   spherical.setFromVector3(pointClicked)
+
+          //   // 尝试贴精灵
+          //   // 球面坐标转化成空间坐标
+          //   // const pointCl = new THREE.Vector3().setFromSphericalCoords(spherical.radius, spherical.phi, spherical.theta)
+          //   // console.log(pointCl)
+          //   // const { x, y, z } = pointCl
+          //   // const material = this.guidepostsMaterial.clone();
+          //   // const sprite = new THREE.Sprite(material);
+          //   // sprite.position.set(x, y, z);
+          //   // sprite.position.normalize();
+          //   // sprite.position.multiplyScalar(3);
+          //   // this.mainScene.add(sprite)
+          // }
         }
-
-        // 射线和球体求交，选中一系列直线
-        // const intersects = raycaster.intersectObjects([mesh])
-        // if (intersects.length > 0) {
-        //   //取点击到的最近的那个物体的交点
-        //   const pointClicked = intersects[0].point
-        //   console.log(pointClicked)
-        //   spherical.setFromVector3(pointClicked)
-
-        //   // 尝试贴精灵
-        //   // 球面坐标转化成空间坐标
-        //   // const pointCl = new THREE.Vector3().setFromSphericalCoords(spherical.radius, spherical.phi, spherical.theta)
-        //   // console.log(pointCl)
-        //   // const { x, y, z } = pointCl
-        //   // const material = this.guidepostsMaterial.clone();
-        //   // const sprite = new THREE.Sprite(material);
-        //   // sprite.position.set(x, y, z);
-        //   // sprite.position.normalize();
-        //   // sprite.position.multiplyScalar(3);
-        //   // this.scene.add(sprite)
-        // }
+        this.canClick = true;
       }
     })()
     , 500
   );}
+
+  transformTexture(texture) {
+    // 内纹理是镜像 需要再镜像还原
+    texture.center = new Vector2(0.5, 0.5);
+    texture.rotation = Math.PI;
+    texture.flipY = false;
+    texture.minFilter = LinearFilter;
+  }
 
   percentTosSpherical(top, left, radius) {
     if (left > 50) {
@@ -2404,23 +2484,16 @@ class PanoramaLoader extends Demo {constructor(...args) { super(...args); Panora
     sprite.position.normalize();
     sprite.position.multiplyScalar(5);
     this.guideposts.push(sprite);
-    this.scene.add(sprite);
+    this.mainScene.add(sprite);
   }
 
   update() {
     _optionalChain$1([this, 'access', _ => _.orbitControl, 'optionalAccess', _2 => _2.update, 'call', _3 => _3()]);
   }
 
-  disposeMesh() {
-    if (this.mesh) {
-      this.scene.remove(this.mesh);
-      this.material.dispose();
-    }
-  }
-
   disposeGuidepost() {
     this.guideposts.forEach(item => {
-      this.scene.remove(item);
+      this.mainScene.remove(item);
     });
     this.guideposts = [];
   }
@@ -2438,8 +2511,7 @@ require('../../utils/utils');
 
 // @ts-ignore
 Page({
-  data: {
-  },
+  data: {},
   onCanvasReady() {
     // @ts-ignore
     Promise.all([
@@ -2480,11 +2552,11 @@ Page({
       this.deps = { canvas, renderer, camera, scene, clock, textureLoader, eventBus, dpr }; // gltfLoader, ,
 
       // scene.position.z = -3;
-      renderer.outputEncoding = sRGBEncoding;
+      // renderer.outputEncoding = THREE.sRGBEncoding;
       renderer.setPixelRatio(tbFont.isDev() ? 1 : dpr);
       renderer.setSize(canW, canH);
 
-      // scene.background = new Color(0xffffff);
+      // scene.background = new THREE.Color(0x000000);
       // const geo = new PlaneBufferGeometry()
       // const mat = new MeshBasicMaterial({ color: 0x123456 })
       // scene.add(new Mesh(geo, mat))
@@ -2503,19 +2575,11 @@ Page({
     }
   },
   async loadContent() {
-    try {
-      my.showLoading();
-      const demo = new (PanoramaLoader)(this.deps) ;
-      await demo.init();
+    const demo = new (PanoramaLoader)(this.deps) ;
+    await demo.init();
 
-      _optionalChain([(this.currDemo ), 'optionalAccess', _3 => _3.dispose, 'call', _4 => _4()]);
-      this.currDemo = demo;
-    } catch (error) {
-      // @ts-ignore
-      my.alert({ content: error + ':' + JSON.stringify(error) });
-    } finally {
-      my.hideLoading();
-    }
+    _optionalChain([(this.currDemo ), 'optionalAccess', _3 => _3.dispose, 'call', _4 => _4()]);
+    this.currDemo = demo;
   },
   // ide中webgl点击事件没反应
   onTX(e) {

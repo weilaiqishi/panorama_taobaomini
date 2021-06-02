@@ -41261,4 +41261,4 @@ if ( typeof $window !== 'undefined' ) {
 
 }
 
-export { $document as $, Clock as C, DoubleSide as D, EventDispatcher as E, MOUSE as M, PLATFORM as P, Quaternion as Q, Raycaster as R, Spherical as S, TOUCH as T, Vector3 as V, WebGL1Renderer as W, Vector2 as a, $window as b, Scene as c, SphereGeometry as d, SpriteMaterial as e, MeshBasicMaterial as f, Mesh as g, Sprite as h, PerspectiveCamera as i, TextureLoader as j, sRGBEncoding as s };
+export { $document as $, Clock as C, DoubleSide as D, EventDispatcher as E, LinearFilter as L, MOUSE as M, PLATFORM as P, Quaternion as Q, Raycaster as R, Spherical as S, TOUCH as T, Vector3 as V, WebGL1Renderer as W, Vector2 as a, $window as b, Scene as c, SpriteMaterial as d, MeshBasicMaterial as e, SphereGeometry as f, Mesh as g, Sprite as h, PerspectiveCamera as i, TextureLoader as j, sRGBEncoding as s };
