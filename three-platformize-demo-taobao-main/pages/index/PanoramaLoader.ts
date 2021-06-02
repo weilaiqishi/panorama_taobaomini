@@ -8,16 +8,19 @@ export class PanoramaLoader extends Demo {
   scene;
   material;
   geometry;
-  mapA;
-  materialA;
-  guideposts: any[] = [];
 
-  panoramas = ['https://topfullstackkimeng.oss-cn-hangzhou.aliyuncs.com/night1.jpg', 'https://topfullstackkimeng.oss-cn-hangzhou.aliyuncs.com/night2.jpg'];
-  markers = [
+  guidepostsMap;
+  guidepostsMaterial;
+  guideposts: any[] = [];
+  time = 0
+
+  panoramas = ['https://topfullstackkimeng.oss-cn-hangzhou.aliyuncs.com/night1.jpg', 'https://isv.alibabausercontent.com/00000000/imgextra/i3/3981030266/O1CN0154rnpS1Dps2LsPLyM_!!3981030266-0-isvtu-00000000.jpg'];
+  guidepostsOption = [
     [
       {
-        x: 50,
-        y: 50
+        x: 4340 / 7680 * 100,
+        y: 2170 / 3840 * 100,
+        next: 1
       },
     ]
   ];
@@ -36,22 +39,28 @@ export class PanoramaLoader extends Demo {
     this.deps.eventBus.on('click', (e) => { this.handleClick(e) })
 
     // 准备精灵贴图
-    this.mapA = this.deps.textureLoader.load('https://isv.alibabausercontent.com/00000000/imgextra/i4/3981030266/O1CN0116CUdP1Dps2GtQXK8_!!3981030266-2-isvtu-00000000.png')
-    this.materialA = new THREE.SpriteMaterial({
-      map: this.mapA,
+    this.guidepostsMap = this.deps.textureLoader.load('https://isv.alibabausercontent.com/00000000/imgextra/i2/3981030266/O1CN01aXsnkp1Dps2HJfGil_!!3981030266-2-isvtu-00000000.png')
+    this.guidepostsMaterial = new THREE.SpriteMaterial({
+      map: this.guidepostsMap,
       color: 0xffffff,
       fog: true,
     });
 
     // 进入场景
     this.changePanoramas(0)
+    setTimeout(() => {
+      this.changePanoramas(1)
+    }, 5000)
   }
 
   changePanoramas(index) {
     const textureLoader = this.deps.textureLoader;
+    // 释放旧全景
+    this.disposeMesh()
+    this.disposeGuidepost()
 
     // 画球
-    this.disposeMesh()
+    this.time++
     const texture = textureLoader.load(this.panoramas[index])
     // 内纹理是镜像 需要再镜像还原
     texture.center = new THREE.Vector2(0.5, 0.5);
@@ -64,10 +73,11 @@ export class PanoramaLoader extends Demo {
     this.scene.add(this.mesh)
 
     // 画地标
-    this.disposeGuidepost()
-    this.markers[0].forEach(({ x, y }) => {
+    this.guidepostsOption[index] && this.guidepostsOption[index].forEach(({ x, y }) => {
       this.addGuidepost(y, x, 50)
     })
+    
+    this.update()
   }
 
   handleClick = utils.debounce(
@@ -94,8 +104,16 @@ export class PanoramaLoader extends Demo {
 
         const intersects = raycaster.intersectObjects(this.guideposts)
         if (intersects.length > 0) {
-          const { object } = intersects[0]
-          console.log(object)
+          // 求射中了哪个路标
+          const { object: { uuid } } = intersects[0]
+          let index = 0
+          for (const i in this.guideposts) {
+            if (this.guideposts[i].uuid === uuid) {
+              index = Number(i)
+              break
+            }
+          }
+          this.changePanoramas(this.guideposts[index].next)
         }
 
         // 射线和球体求交，选中一系列直线
@@ -111,7 +129,7 @@ export class PanoramaLoader extends Demo {
         //   // const pointCl = new THREE.Vector3().setFromSphericalCoords(spherical.radius, spherical.phi, spherical.theta)
         //   // console.log(pointCl)
         //   // const { x, y, z } = pointCl
-        //   // const material = this.materialA.clone();
+        //   // const material = this.guidepostsMaterial.clone();
         //   // const sprite = new THREE.Sprite(material);
         //   // sprite.position.set(x, y, z);
         //   // sprite.position.normalize();
@@ -136,7 +154,7 @@ export class PanoramaLoader extends Demo {
 
   addGuidepost(top, left, radius) {
     const { x, y, z } = this.percentTosSpherical(top, left, radius)
-    const material = this.materialA.clone();
+    const material = this.guidepostsMaterial.clone();
     const sprite = new THREE.Sprite(material);
     sprite.position.set(x, y, z);
     sprite.position.normalize();
@@ -153,14 +171,12 @@ export class PanoramaLoader extends Demo {
     if (this.mesh) {
       this.scene.remove(this.mesh)
       this.material.dispose()
-      this.mesh.dispose()
     }
   }
 
   disposeGuidepost() {
     this.guideposts.forEach(item => {
       this.scene.remove(item)
-      item.dispose()
     })
     this.guideposts = []
   }

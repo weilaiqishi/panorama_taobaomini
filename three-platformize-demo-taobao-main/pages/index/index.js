@@ -2247,21 +2247,24 @@ class Demo {
 function _optionalChain$1(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }
 const utils = require('../../utils/utils');
 
-class PanoramaLoader extends Demo {constructor(...args) { super(...args); PanoramaLoader.prototype.__init.call(this);PanoramaLoader.prototype.__init2.call(this);PanoramaLoader.prototype.__init3.call(this);PanoramaLoader.prototype.__init4.call(this); }
+class PanoramaLoader extends Demo {constructor(...args) { super(...args); PanoramaLoader.prototype.__init.call(this);PanoramaLoader.prototype.__init2.call(this);PanoramaLoader.prototype.__init3.call(this);PanoramaLoader.prototype.__init4.call(this);PanoramaLoader.prototype.__init5.call(this); }
   
   
   
   
+
   
   
   __init() {this.guideposts = [];}
+  __init2() {this.time = 0;}
 
-  __init2() {this.panoramas = ['https://topfullstackkimeng.oss-cn-hangzhou.aliyuncs.com/night1.jpg', 'https://topfullstackkimeng.oss-cn-hangzhou.aliyuncs.com/night2.jpg'];}
-  __init3() {this.markers = [
+  __init3() {this.panoramas = ['https://topfullstackkimeng.oss-cn-hangzhou.aliyuncs.com/night1.jpg', 'https://isv.alibabausercontent.com/00000000/imgextra/i3/3981030266/O1CN0154rnpS1Dps2LsPLyM_!!3981030266-0-isvtu-00000000.jpg'];}
+  __init4() {this.guidepostsOption = [
     [
       {
-        x: 50,
-        y: 50
+        x: 4340 / 7680 * 100,
+        y: 2170 / 3840 * 100,
+        next: 1
       },
     ]
   ];}
@@ -2280,22 +2283,28 @@ class PanoramaLoader extends Demo {constructor(...args) { super(...args); Panora
     this.deps.eventBus.on('click', (e) => { this.handleClick(e); });
 
     // 准备精灵贴图
-    this.mapA = this.deps.textureLoader.load('https://isv.alibabausercontent.com/00000000/imgextra/i4/3981030266/O1CN0116CUdP1Dps2GtQXK8_!!3981030266-2-isvtu-00000000.png');
-    this.materialA = new SpriteMaterial({
-      map: this.mapA,
+    this.guidepostsMap = this.deps.textureLoader.load('https://isv.alibabausercontent.com/00000000/imgextra/i2/3981030266/O1CN01aXsnkp1Dps2HJfGil_!!3981030266-2-isvtu-00000000.png');
+    this.guidepostsMaterial = new SpriteMaterial({
+      map: this.guidepostsMap,
       color: 0xffffff,
       fog: true,
     });
 
     // 进入场景
     this.changePanoramas(0);
+    setTimeout(() => {
+      this.changePanoramas(1);
+    }, 5000);
   }
 
   changePanoramas(index) {
     const textureLoader = this.deps.textureLoader;
+    // 释放旧全景
+    this.disposeMesh();
+    this.disposeGuidepost();
 
     // 画球
-    this.disposeMesh();
+    this.time++;
     const texture = textureLoader.load(this.panoramas[index]);
     // 内纹理是镜像 需要再镜像还原
     texture.center = new Vector2(0.5, 0.5);
@@ -2308,13 +2317,14 @@ class PanoramaLoader extends Demo {constructor(...args) { super(...args); Panora
     this.scene.add(this.mesh);
 
     // 画地标
-    this.disposeGuidepost();
-    this.markers[0].forEach(({ x, y }) => {
+    this.guidepostsOption[index] && this.guidepostsOption[index].forEach(({ x, y }) => {
       this.addGuidepost(y, x, 50);
     });
+    
+    this.update();
   }
 
-  __init4() {this.handleClick = utils.debounce(
+  __init5() {this.handleClick = utils.debounce(
     (() => {
       const mouse = new Vector2();
       const raycaster = new Raycaster();
@@ -2338,8 +2348,16 @@ class PanoramaLoader extends Demo {constructor(...args) { super(...args); Panora
 
         const intersects = raycaster.intersectObjects(this.guideposts);
         if (intersects.length > 0) {
-          const { object } = intersects[0];
-          console.log(object);
+          // 求射中了哪个路标
+          const { object: { uuid } } = intersects[0];
+          let index = 0;
+          for (const i in this.guideposts) {
+            if (this.guideposts[i].uuid === uuid) {
+              index = Number(i);
+              break
+            }
+          }
+          this.changePanoramas(this.guideposts[index].next);
         }
 
         // 射线和球体求交，选中一系列直线
@@ -2355,7 +2373,7 @@ class PanoramaLoader extends Demo {constructor(...args) { super(...args); Panora
         //   // const pointCl = new THREE.Vector3().setFromSphericalCoords(spherical.radius, spherical.phi, spherical.theta)
         //   // console.log(pointCl)
         //   // const { x, y, z } = pointCl
-        //   // const material = this.materialA.clone();
+        //   // const material = this.guidepostsMaterial.clone();
         //   // const sprite = new THREE.Sprite(material);
         //   // sprite.position.set(x, y, z);
         //   // sprite.position.normalize();
@@ -2380,7 +2398,7 @@ class PanoramaLoader extends Demo {constructor(...args) { super(...args); Panora
 
   addGuidepost(top, left, radius) {
     const { x, y, z } = this.percentTosSpherical(top, left, radius);
-    const material = this.materialA.clone();
+    const material = this.guidepostsMaterial.clone();
     const sprite = new Sprite(material);
     sprite.position.set(x, y, z);
     sprite.position.normalize();
@@ -2397,14 +2415,12 @@ class PanoramaLoader extends Demo {constructor(...args) { super(...args); Panora
     if (this.mesh) {
       this.scene.remove(this.mesh);
       this.material.dispose();
-      this.mesh.dispose();
     }
   }
 
   disposeGuidepost() {
     this.guideposts.forEach(item => {
       this.scene.remove(item);
-      item.dispose();
     });
     this.guideposts = [];
   }
